@@ -1,3 +1,20 @@
+#define CONFIG_DIR	 	"/etc/nicepowerd"
+#define SOCKET_DIR 		"/run/nicepowerd"
+#define DAEMON_SOCKET 	"/run/nicepowerd/nicepowerd"
+#define GET_PROFILE 	"get"
+#define PROFILE_HIGH 	"performance"
+#define PROFILE_MID 	"balance"
+#define PROFILE_LOW		"power"
+#define MSG_LEN			sizeof (PROFILE_HIGH) - 1
+#define MAX_PATH_LEN	512
+#define SHORT_INTERVAL	5
+#define LONG_INTERVAL 	30
+
+struct npd_state {
+	char default_profile[MSG_LEN];
+    char profile_path[512];
+};
+
 int make_named_socket(const char *filename) {
     struct sockaddr_un name;
 	int sock;

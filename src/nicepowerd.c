@@ -12,16 +12,7 @@
 
 #include "nicepower.h"
 
-
-#define SOCKET_DIR 		"/run/nicepowerd"
-#define DAEMON_SOCKET 	"/run/nicepowerd/nicepowerd"
-#define GET_PROFILE 	"get"
-#define PROFILE_HIGH 	"performance"
-#define PROFILE_MID 	"balance"
-#define PROFILE_LOW		"power"
-#define MSG_LEN			sizeof (PROFILE_HIGH) - 1
-#define SHORT_INTERVAL	5
-#define LONG_INTERVAL 	30
+#define NAME	"nicepowerd"
 
 extern int make_named_socket(const char *filename);
 
@@ -73,10 +64,16 @@ void *nicepowerctl(void *arg) {
     }
 }
 
-int nicepowerd() {
+int nicepowerd(struct npd_state npd_options) {
     pthread_t thread_id;
-	char prev_profile[MSG_LEN] = PROFILE_MID;
-	char profile[MSG_LEN] = PROFILE_MID;
+	char prev_profile[MSG_LEN];
+	char profile[MSG_LEN];
+
+	// Initialize profile vars
+	fprintf(stdout, "Using default profile: %s\n", npd_options.default_profile);
+	fprintf(stdout, "Using profile directory: %s\n", npd_options.profile_path);
+	strncpy(profile, npd_options.default_profile, MSG_LEN);
+	strncpy(prev_profile, npd_options.default_profile, MSG_LEN);
 
 	// Create socket listener thread
     pthread_create(&thread_id, NULL, nicepowerctl, &profile);
@@ -102,11 +99,32 @@ int nicepowerd() {
 }
 
 int main(int argc , char *argv[]) {
-    
+	struct npd_state npd_options;
+	strncpy(npd_options.default_profile, PROFILE_MID, MSG_LEN);
+	strncpy(npd_options.profile_path, CONFIG_DIR, MAX_PATH_LEN);
+	
+    int option;
+    while((option = getopt(argc, argv, ":d:p:")) != -1) {
+        switch(option){
+         	case 'd':
+         		strncpy(npd_options.default_profile, optarg, MSG_LEN);
+            	break;
+         	case 'p': //here f is used for some file name
+            	printf("Using profile directory: %s\n", optarg);
+           		strncpy(npd_options.profile_path, optarg, MAX_PATH_LEN);
+            	break;
+            default:
+         	case '?':
+            	printf("unknown option: %c\n", optopt);
+            	break;
+      }
+   }
+
+    // Print status prior to start
 	fprintf(stdout, "Starting daemon\n");
 	fflush(stdout);
 
-#ifdef DEBUG
+#ifndef DEBUG
     // Fork off the parent process
     pid_t pid = fork();
     if (pid < 0)
@@ -129,7 +147,7 @@ int main(int argc , char *argv[]) {
         or another appropriated directory */
     chdir("/");
 
-#ifdef DEBUG
+#ifndef DEBUG
     // Close all open file descriptors
     for (int x = sysconf(_SC_OPEN_MAX); x>=0; x--) {
         close (x);
@@ -137,6 +155,6 @@ int main(int argc , char *argv[]) {
 #endif
 
     // Start daemon
-    nicepowerd();
+    nicepowerd(npd_options);
 	return 0;
 }
