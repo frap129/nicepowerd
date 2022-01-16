@@ -14,10 +14,22 @@
 
 #define NAME	"nicepowerd"
 
+static FILE *output;
+static struct npd_state npd_options;
 extern int make_named_socket(const char *filename);
 
 int set_profile(char *profile) {
-	// TODO
+	// Build profile path
+	char exec_path[MAX_PATH_LEN];
+	strncpy(exec_path, npd_options.profile_path, MAX_PATH_LEN);
+	strncat(exec_path, "/", MAX_PATH_LEN);
+	strncat(exec_path, profile, MAX_PATH_LEN);
+	strncat(exec_path, ".sh", MAX_PATH_LEN);
+
+	// Execute profile script
+	char *args[3] = {exec_path, NULL};
+	execv(args[0], args);
+
 	return 0;
 }
 
@@ -28,7 +40,7 @@ void *nicepowerctl(void *arg) {
     socklen_t size;
     int nbytes;
 
-	printf("Starting ctl listener\n");
+	fprintf(output, "Starting ctl listener\n");
 
 	// Get active profile pointer
 	char **profile = (char**)arg;
@@ -39,7 +51,7 @@ void *nicepowerctl(void *arg) {
     sock = make_named_socket(DAEMON_SOCKET);
 
     while (1) {
-    	fprintf(stdout, "waiting for ctl message\n");
+    	fprintf(output, "Waiting for message from nicepowerctl\n");
     	
         /* Wait for a message. */
         size = sizeof (name);
@@ -69,11 +81,19 @@ int nicepowerd(struct npd_state npd_options) {
 	char prev_profile[MSG_LEN];
 	char profile[MSG_LEN];
 
+	// Setup logging
+#ifndef DEBUG
+    output = fopen(LOG_PATH, "w");
+#else
+    output = stdout;
+#endif
+
 	// Initialize profile vars
-	fprintf(stdout, "Using default profile: %s\n", npd_options.default_profile);
-	fprintf(stdout, "Using profile directory: %s\n", npd_options.profile_path);
+	fprintf(output, "Using default profile: %s\n", npd_options.default_profile);
+	fprintf(output, "Using profile directory: %s\n", npd_options.profile_path);
 	strncpy(profile, npd_options.default_profile, MSG_LEN);
 	strncpy(prev_profile, npd_options.default_profile, MSG_LEN);
+	fflush(output);
 
 	// Create socket listener thread
     pthread_create(&thread_id, NULL, nicepowerctl, &profile);
@@ -90,8 +110,8 @@ int nicepowerd(struct npd_state npd_options) {
     	}
     	
 		// Do something
-		fprintf(stdout, "I\'ll manage profiles here\n");
-		fflush(stdout);
+		fprintf(output, "I\'ll manage profiles here\n");
+		fflush(output);
 		sleep(SHORT_INTERVAL);
     }
 
@@ -99,9 +119,10 @@ int nicepowerd(struct npd_state npd_options) {
 }
 
 int main(int argc , char *argv[]) {
-	struct npd_state npd_options;
+	// Copy defaults to state
 	strncpy(npd_options.default_profile, PROFILE_MID, MSG_LEN);
 	strncpy(npd_options.profile_path, CONFIG_DIR, MAX_PATH_LEN);
+	mkdir(CONFIG_DIR, 760);
 	
     int option;
     while((option = getopt(argc, argv, ":d:p:")) != -1) {
@@ -110,7 +131,6 @@ int main(int argc , char *argv[]) {
          		strncpy(npd_options.default_profile, optarg, MSG_LEN);
             	break;
          	case 'p': //here f is used for some file name
-            	printf("Using profile directory: %s\n", optarg);
            		strncpy(npd_options.profile_path, optarg, MAX_PATH_LEN);
             	break;
             default:

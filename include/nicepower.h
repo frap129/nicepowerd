@@ -1,4 +1,5 @@
 #define CONFIG_DIR	 	"/etc/nicepowerd"
+#define LOG_PATH	 	"/var/log/nicepowerd"
 #define SOCKET_DIR 		"/run/nicepowerd"
 #define DAEMON_SOCKET 	"/run/nicepowerd/nicepowerd"
 #define GET_PROFILE 	"get"
