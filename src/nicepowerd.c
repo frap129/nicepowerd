@@ -20,15 +20,14 @@ extern int make_named_socket(const char *filename);
 
 int set_profile(char *profile) {
 	// Build profile path
-	char exec_path[MAX_PATH_LEN];
-	strncpy(exec_path, npd_options->profile_path, MAX_PATH_LEN);
-	strncat(exec_path, "/", MAX_PATH_LEN);
+	char exec_path[MAX_PATH_LEN + MSG_LEN];
+	strcat(exec_path, npd_options->profile_path);
+	strcat(exec_path, "/");
 	strncat(exec_path, profile, MAX_PATH_LEN);
-	strncat(exec_path, ".sh", MAX_PATH_LEN);
 
 	// Execute profile script
-	char *args[3] = {exec_path, NULL};
-	execv(args[0], args);
+	fprintf(output, "Executing: %s\n", exec_path);
+	system(exec_path);
 
 	return 0;
 }
