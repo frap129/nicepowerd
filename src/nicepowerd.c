@@ -15,13 +15,13 @@
 #define NAME	"nicepowerd"
 
 static FILE *output;
-static struct npd_state npd_options;
+static struct npd_state *npd_options;
 extern int make_named_socket(const char *filename);
 
 int set_profile(char *profile) {
 	// Build profile path
 	char exec_path[MAX_PATH_LEN];
-	strncpy(exec_path, npd_options.profile_path, MAX_PATH_LEN);
+	strncpy(exec_path, npd_options->profile_path, MAX_PATH_LEN);
 	strncat(exec_path, "/", MAX_PATH_LEN);
 	strncat(exec_path, profile, MAX_PATH_LEN);
 	strncat(exec_path, ".sh", MAX_PATH_LEN);
@@ -33,7 +33,7 @@ int set_profile(char *profile) {
 	return 0;
 }
 
-void *nicepowerctl(void *arg) {
+void *nicepowerctl() {
     char message[MSG_LEN];
     int sock;
     struct sockaddr_un name;
@@ -42,20 +42,17 @@ void *nicepowerctl(void *arg) {
 
 	fprintf(output, "Starting ctl listener\n");
 
-	// Get active profile pointer
-	char **profile = (char**)arg;
-
     // Setup socket
-    mkdir(SOCKET_DIR, 0760);
+    mkdir(SOCKET_DIR, 0766);
     unlink(DAEMON_SOCKET);
     sock = make_named_socket(DAEMON_SOCKET);
 
     while (1) {
     	fprintf(output, "Waiting for message from nicepowerctl\n");
-    	
+
         /* Wait for a message. */
-        size = sizeof (name);
-        nbytes = recvfrom (sock, message, MSG_LEN, 0,
+        size = sizeof(name);
+        nbytes = recvfrom(sock, message, MSG_LEN, 0,
                            (struct sockaddr *) & name, &size);
 
 		// Ignore message transmission errors
@@ -66,20 +63,20 @@ void *nicepowerctl(void *arg) {
      	// Check if message is a get request
         if (strcmp(message, GET_PROFILE) == 0) {
         	// Reply with active profile
-        	nbytes = sendto (sock, *profile, nbytes, 0,
+        	nbytes = sendto(sock, npd_options->active_profile, nbytes, 0,
         	                 (struct sockaddr *) & name, size);
         } else {
         	// Set current profile
-        	strncpy(*profile,  message, MSG_LEN);
-        	set_profile(*profile);
+        	strncpy(npd_options->active_profile, message, MSG_LEN);
+        	set_profile(npd_options->active_profile);
+        	fprintf(output, "profile set: %s\n", npd_options->active_profile);
         }
     }
 }
 
-int nicepowerd(struct npd_state npd_options) {
+int nicepowerd(struct npd_state *npd_options) {
     pthread_t thread_id;
 	char prev_profile[MSG_LEN];
-	char profile[MSG_LEN];
 
 	// Setup logging
 #ifndef DEBUG
@@ -87,24 +84,25 @@ int nicepowerd(struct npd_state npd_options) {
 #else
     output = stdout;
 #endif
+	fprintf(output, "Using default profile: %s\n", npd_options->default_profile);
+	fprintf(output, "Using profile directory: %s\n", npd_options->profile_path);
 
 	// Initialize profile vars
-	fprintf(output, "Using default profile: %s\n", npd_options.default_profile);
-	fprintf(output, "Using profile directory: %s\n", npd_options.profile_path);
-	strncpy(profile, npd_options.default_profile, MSG_LEN);
-	strncpy(prev_profile, npd_options.default_profile, MSG_LEN);
+	npd_options->active_profile = malloc(MSG_LEN);
+	strncpy(prev_profile, npd_options->default_profile, MSG_LEN);
+	strncpy(npd_options->active_profile, npd_options->default_profile, MSG_LEN);
 	fflush(output);
 
 	// Create socket listener thread
-    pthread_create(&thread_id, NULL, nicepowerctl, &profile);
+    pthread_create(&thread_id, NULL, nicepowerctl, NULL);
 
     // Set profile and start monitoring
-	set_profile(profile);
+	set_profile(npd_options->active_profile);
     while (1) {
 		// Check if profile was manually set
-    	if (strcmp(prev_profile, profile) != 0) {
+    	if (strcmp(prev_profile, npd_options->active_profile) != 0) {
     		// Sleep longer to maintain user-set profile
-    		strncpy(prev_profile, profile, MSG_LEN);
+    		strncpy(prev_profile, npd_options->active_profile, MSG_LEN);
     		sleep(LONG_INTERVAL);
     		continue;
     	}
@@ -120,18 +118,19 @@ int nicepowerd(struct npd_state npd_options) {
 
 int main(int argc , char *argv[]) {
 	// Copy defaults to state
-	strncpy(npd_options.default_profile, PROFILE_MID, MSG_LEN);
-	strncpy(npd_options.profile_path, CONFIG_DIR, MAX_PATH_LEN);
+	npd_options = malloc(MAX_PATH_LEN+ (2*MSG_LEN));
+	strncpy(npd_options->default_profile, PROFILE_MID, MSG_LEN);
+	strncpy(npd_options->profile_path, CONFIG_DIR, MAX_PATH_LEN);
 	mkdir(CONFIG_DIR, 760);
 	
     int option;
     while((option = getopt(argc, argv, ":d:p:")) != -1) {
         switch(option){
          	case 'd':
-         		strncpy(npd_options.default_profile, optarg, MSG_LEN);
+         		strncpy(npd_options->default_profile, optarg, MSG_LEN);
             	break;
          	case 'p': //here f is used for some file name
-           		strncpy(npd_options.profile_path, optarg, MAX_PATH_LEN);
+           		strncpy(npd_options->profile_path, optarg, MAX_PATH_LEN);
             	break;
             default:
          	case '?':

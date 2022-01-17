@@ -1,11 +1,15 @@
 DAEMON := nicepowerd
+CTL := nicepowerctl
+
 CFLAGS := $(CFLAGS) -pthread -Iinclude
 CFLAGS_DEBUG := -ggdb -DDEBUG -Wall -Wextra
-SRC := src/nicepowerd.c
  
 PHONY: clean build
 clean:
-	@rm -f $(DAEMON) $<
+	@rm -f $(DAEMON) $(CTL) $<
 build:
 	@echo "Compiling $(DAEMON)..." $<
-	@clang $(SRC) $(CFLAGS) $(CFLAGS_DEBUG) -o $(DAEMON) $<
+	@clang src/$(DAEMON).c $(CFLAGS) $(CFLAGS_DEBUG) -o $(DAEMON) $<
+	@echo "Compiling $(CTL)..." $<
+	@clang src/$(CTL).c $(CFLAGS) $(CFLAGS_DEBUG) -o $(CTL) $<
+
