@@ -45,3 +45,29 @@ int make_named_socket(const char *filename) {
 
   	return sock;
 }
+
+void daemonize() {
+    // Print status prior to start
+	fprintf(stdout, "Starting daemon\n");
+	fflush(stdout);
+
+    // Fork off the parent process
+    pid_t pid = fork();
+    if (pid < 0)
+        exit(EXIT_FAILURE);
+    if (pid > 0)
+        exit(EXIT_SUCCESS);
+    if (setsid() < 0)
+        exit(EXIT_FAILURE);
+
+    // Set new file permissions
+    umask(0);
+
+    // Change directory to root
+    chdir("/");
+
+    // Close all open file descriptors
+    for (int x = sysconf(_SC_OPEN_MAX); x>=0; x--) {
+        close (x);
+    }
+}

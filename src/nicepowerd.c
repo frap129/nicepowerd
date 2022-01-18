@@ -1,5 +1,7 @@
+#include <stdbool.h>
 #include <errno.h>
 #include <signal.h>
+#include <getopt.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +18,6 @@
 
 static FILE *output;
 static struct npd_state *npd_options;
-extern int make_named_socket(const char *filename);
 
 int set_profile(char *profile) {
 	// Build profile path
@@ -116,63 +117,56 @@ int nicepowerd(struct npd_state *npd_options) {
 }
 
 int main(int argc , char *argv[]) {
-	// Copy defaults to state
-	npd_options = malloc(MAX_PATH_LEN+ (2*MSG_LEN));
-	strncpy(npd_options->default_profile, PROFILE_MID, MSG_LEN);
-	strncpy(npd_options->profile_path, CONFIG_DIR, MAX_PATH_LEN);
-	mkdir(CONFIG_DIR, 760);
-	
+	bool daemon = false;
     int option;
-    while((option = getopt(argc, argv, ":d:p:")) != -1) {
+
+	static struct option long_options[] = {
+			{ "daemon", no_argument, 0, 'd' },
+			{ "profile", required_argument, 0, 'p' },
+			{ "config", required_argument, 0, 'c' },  
+			{ "help", no_argument, 0, 'h' }
+		};
+	static const char *short_options = "dp:c:h";
+	
+    while((option = getopt_long(argc, argv, short_options, long_options, 0)) != -1) {
         switch(option){
-         	case 'd':
+        	case 'd':
+        		daemon = true;
+        		break;
+        		
+         	case 'p':
          		strncpy(npd_options->default_profile, optarg, MSG_LEN);
             	break;
-         	case 'p': //here f is used for some file name
+            	
+         	case 'c':
            		strncpy(npd_options->profile_path, optarg, MAX_PATH_LEN);
             	break;
-            default:
+            	
+			case ':':
          	case '?':
+            default:
             	printf("unknown option: %c\n", optopt);
             	break;
       }
    }
 
-    // Print status prior to start
-	fprintf(stdout, "Starting daemon\n");
-	fflush(stdout);
+   	// Copy defaults to state
+	npd_options = malloc(MAX_PATH_LEN+ (2*MSG_LEN));
+	strncpy(npd_options->default_profile, PROFILE_MID, MSG_LEN);
+	strncpy(npd_options->profile_path, CONFIG_DIR, MAX_PATH_LEN);
+	mkdir(CONFIG_DIR, 760);
 
-#ifndef DEBUG
-    // Fork off the parent process
-    pid_t pid = fork();
-    if (pid < 0)
-        exit(EXIT_FAILURE);
-    if (pid > 0)
-        exit(EXIT_SUCCESS);
-    if (setsid() < 0)
-        exit(EXIT_FAILURE);
-#endif
+	// Start as daemon if asked
+    if (daemon)
+    	daemonize();
 
     // Catch, ignore and handle signals
     // TODO: Implement a working signal handler
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
-
-    // Set new file permissions
-    umask(0);
-
-    /* Change the working directory to the root directory
-        or another appropriated directory */
-    chdir("/");
-
-#ifndef DEBUG
-    // Close all open file descriptors
-    for (int x = sysconf(_SC_OPEN_MAX); x>=0; x--) {
-        close (x);
-    }
-#endif
-
-    // Start daemon
+    	
+    // Start main loop
     nicepowerd(npd_options);
+
 	return 0;
 }
