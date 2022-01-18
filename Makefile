@@ -2,7 +2,7 @@ DAEMON := nicepowerd
 CTL := nicepowerctl
 
 CFLAGS := $(CFLAGS) -pthread -Iinclude
-CFLAGS_DEBUG := -ggdb -Wall -Wextra
+CFLAGS_DEBUG := -ggdb -DDEBUG -Wall -Wextra
  
 PHONY: clean build
 clean:
