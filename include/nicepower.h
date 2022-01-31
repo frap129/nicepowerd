@@ -1,5 +1,6 @@
 #define CONFIG_DIR	 	"/etc/nicepowerd"
 #define LOG_PATH	 	"/var/log/nicepowerd"
+#define BAT_PATH	 	"/sys/class/power_supply/BAT0/capacity"
 #define SOCKET_DIR 		"/run/nicepowerd"
 #define DAEMON_SOCKET 	"/run/nicepowerd/nicepowerd"
 #define CTL_SOCKET 		"\0nicepowerctl"
@@ -13,11 +14,18 @@
 #define MAX_PATH_LEN	512
 #define SHORT_INTERVAL	5
 #define LONG_INTERVAL 	30
+#define XLONG_INTERVAL 	1000
+
+#define LOW_BAT_THRESH	20
+#define HIGH_BAT_THRESH	80
+
+enum battery_state { bat_ac, bat_high, bat_norm, bat_low };
 
 struct npd_state {
 	char default_profile[MSG_LEN];
     char profile_path[512];
     char *active_profile;
+    enum battery_state bat_state;
 };
 
 int make_named_socket(const char *filename) {

@@ -74,9 +74,16 @@ void *nicepowerctl() {
     }
 }
 
+int battery_level() {
+	FILE *battery = fopen(BAT_PATH, "r");
+	char value[3];
+	fgets(value, 4, battery);
+	return atoi(value);
+}
+
 int nicepowerd(struct npd_state *npd_options) {
     pthread_t thread_id;
-	char prev_profile[MSG_LEN];
+	char selected_profile[MSG_LEN];
 
 	// Setup logging
 #ifndef DEBUG
@@ -89,7 +96,7 @@ int nicepowerd(struct npd_state *npd_options) {
 
 	// Initialize profile vars
 	npd_options->active_profile = malloc(MSG_LEN);
-	strncpy(prev_profile, npd_options->default_profile, MSG_LEN);
+	strncpy(selected_profile, npd_options->default_profile, MSG_LEN);
 	strncpy(npd_options->active_profile, npd_options->default_profile, MSG_LEN);
 	fflush(output);
 
@@ -100,15 +107,37 @@ int nicepowerd(struct npd_state *npd_options) {
 	set_profile(npd_options->active_profile);
     while (1) {
 		// Check if profile was manually set
-    	if (strcmp(prev_profile, npd_options->active_profile) != 0) {
+    	if (strcmp(selected_profile, npd_options->active_profile) != 0) {
     		// Sleep longer to maintain user-set profile
-    		strncpy(prev_profile, npd_options->active_profile, MSG_LEN);
+    		strncpy(selected_profile, npd_options->active_profile, MSG_LEN);
     		sleep(LONG_INTERVAL);
     		continue;
     	}
     	
 		// Do something
 		fprintf(output, "I\'ll manage profiles here\n");
+
+		// Check battery level
+		int battery = battery_level();
+		
+		if (battery >= BAT_HIGH_THRESH) {
+			npd_options->bat_state = bat_high;
+		} else if (battery <= BAT_LOW_THRESH) {
+			// If low battery threshold is met, set power profile
+			npd_options->bat_state = bat_low;
+			strncpy(selected_profile, PROFILE_LOW, MSG_LEN);
+			strncpy(npd_options->active_profile, PROFILE_LOW, MSG_LEN);
+			set_profile(npd_options->active_profile);
+			fprintf(output, "LOW BATTERY: profile set: %s\n", npd_options->active_profile);
+			fflush(output);
+
+			// Sleep LONG_INTERVAL to avoid power draw from this daemon
+			sleep(XLONG_INTERVAL);
+			continue;
+		} else {
+			npd_options->bat_state = bat_norm;
+		}
+
 		fflush(output);
 		sleep(SHORT_INTERVAL);
     }
@@ -147,8 +176,8 @@ int main(int argc , char *argv[]) {
             default:
             	printf("unknown option: %c\n", optopt);
             	break;
-      }
-   }
+        }
+    }
 
    	// Copy defaults to state
 	npd_options = malloc(MAX_PATH_LEN+ (2*MSG_LEN));
