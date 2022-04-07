@@ -43,9 +43,10 @@ void *nicepowerctl() {
 	fprintf(output, "Starting ctl listener\n");
 
     // Setup socket
-    mkdir(SOCKET_DIR, 0766);
+    mkdir(SOCKET_DIR, 0777);
     unlink(DAEMON_SOCKET);
     sock = make_named_socket(DAEMON_SOCKET);
+    chmod(DAEMON_SOCKET, 0777);
 
     while (1) {
     	fprintf(output, "Waiting for message from nicepowerctl\n");

@@ -16,8 +16,8 @@
 #define LONG_INTERVAL 	30
 #define XLONG_INTERVAL 	1000
 
-#define LOW_BAT_THRESH	20
-#define HIGH_BAT_THRESH	80
+#define BAT_LOW_THRESH	20
+#define BAT_HIGH_THRESH	80
 
 enum battery_state { bat_ac, bat_high, bat_norm, bat_low };
 
