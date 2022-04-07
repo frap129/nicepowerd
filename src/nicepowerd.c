@@ -114,13 +114,12 @@ int nicepowerd(struct npd_state *npd_options) {
     		sleep(LONG_INTERVAL);
     		continue;
     	}
-    	
-		// Do something
-		fprintf(output, "I\'ll manage profiles here\n");
 
 		// Check battery level
 		int battery = battery_level();
-		
+		fprintf(output, "Battery Level: %d\n", battery);
+
+		// Check if profile should be switched
 		if (battery >= BAT_HIGH_THRESH) {
 			npd_options->bat_state = bat_high;
 		} else if (battery <= BAT_LOW_THRESH) {
