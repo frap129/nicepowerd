@@ -28,21 +28,21 @@ int main (int argc , char *argv[]) {
     size_t size;
     int nbytes;
 
-	// Verify user has given a command, print help otherwise
-  	if (argc != 2) {
-  		print_help();
-		return 0;	
-  	}
+    // Verify user has given a command, print help otherwise
+    if (argc != 2) {
+        print_help();
+        return 0;    
+    }
 
-  	// Validate argument
-  	if (strcmp(argv[1], PROFILE_HIGH) != 0 &&
-  		strcmp(argv[1], PROFILE_MID) != 0 &&
-  		strcmp(argv[1], PROFILE_LOW) != 0 && 
-  		strcmp(argv[1], GET_PROFILE) != 0){
-  		printf("invalid command: %s\n", argv[1]);
-  		exit(EXIT_FAILURE);
-  	}
-  	
+    // Validate argument
+    if (strcmp(argv[1], PROFILE_HIGH) != 0 &&
+        strcmp(argv[1], PROFILE_MID) != 0 &&
+        strcmp(argv[1], PROFILE_LOW) != 0 && 
+        strcmp(argv[1], GET_PROFILE) != 0) {
+        printf("invalid command: %s\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
+      
     // Socket setup
     unlink(CTL_SOCKET);
     sock = make_named_socket(CTL_SOCKET);
@@ -51,24 +51,23 @@ int main (int argc , char *argv[]) {
     size = strlen(name.sun_path) + sizeof(name.sun_family);
       
     // Send message to daemon
-    nbytes = sendto(sock, argv[1], MSG_LEN, 0,
-                     (struct sockaddr *) & name, size);
+    nbytes = sendto(sock, argv[1], MSG_LEN, 0, (struct sockaddr *) & name, size);
     if (nbytes < 0) {
         printf("nicepowerd is not running\n");
         exit(EXIT_FAILURE);
     }
 
-	// Check if user sent a get request
+    // Check if user sent a get request
     if (strcmp(argv[1], GET_PROFILE) == 0) {
-   	    // Wait for reply
-	    nbytes = recvfrom(sock, message, MSG_LEN, 0, NULL, 0);
-    	if (nbytes < 0) {
-        	perror("error getting profile: ");
-        	exit(EXIT_FAILURE);
-   		}
+        // Wait for reply
+        nbytes = recvfrom(sock, message, MSG_LEN, 0, NULL, 0);
+        if (nbytes < 0) {
+            perror("error getting profile: ");
+            exit(EXIT_FAILURE);
+        }
 
-  		// Print current profile
-	    printf("%s\n", message);
+        // Print current profile
+        printf("%s\n", message);
     }
   
     // Cleanup
