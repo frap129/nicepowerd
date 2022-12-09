@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "nicepower.h"
+#include "../include/nicepower.h"
 
 #define NAME	"nicepowerd"
 

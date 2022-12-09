@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <sys/un.h>
  
-#include "nicepower.h"
+#include "../include/nicepower.h"
 #define NAME	"nicepowerctl"
 
 void print_help() {
