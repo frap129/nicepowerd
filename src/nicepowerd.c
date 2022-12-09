@@ -1,15 +1,8 @@
 #include <stdbool.h>
-#include <errno.h>
 #include <signal.h>
 #include <getopt.h>
 #include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
 #include <pthread.h>
 
 #include "../include/nicepower.h"

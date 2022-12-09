@@ -1,3 +1,12 @@
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
+
+
 #define CONFIG_DIR		"/etc/nicepowerd"
 #define LOG_PATH		"/var/log/nicepowerd"
 #define AC_PATH		"/sys/class/power_supply/AC/online"
