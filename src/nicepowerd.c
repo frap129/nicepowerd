@@ -80,6 +80,7 @@ int charging_state() {
     FILE *ac = fopen(AC_PATH, "r");
     char value[1];
     fgets(value, 2, ac);
+    fclose(ac);
     return atoi(value);
 }
 
@@ -87,6 +88,7 @@ int battery_level() {
     FILE *battery = fopen(BAT_PATH, "r");
     char value[3];
     fgets(value, 4, battery);
+    fclose(battery);
     return atoi(value);
 }
 
