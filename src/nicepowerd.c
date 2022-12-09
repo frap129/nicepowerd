@@ -132,14 +132,14 @@ int nicepowerd(struct npd_state *npd_options) {
         fprintf(output, "Battery Level: %d\n", battery);
 
         // Check if profile should be switched
-        if (battery >= BAT_HIGH_THRESH && charging) {
+        if (battery >= BAT_HIGH_THRESH && charging && strcmp(npd_options->active_profile, PROFILE_HIGH)) {
             npd_options->bat_state = bat_high;
             strncpy(selected_profile, PROFILE_HIGH, MSG_LEN);
             strncpy(npd_options->active_profile, PROFILE_HIGH, MSG_LEN);
             set_profile(npd_options->active_profile);
             fprintf(output, "CHARGING and HIGH BATTERY: profile set: %s\n", npd_options->active_profile);
             fflush(output);
-        } else if (battery <= BAT_LOW_THRESH && !charging) {
+        } else if (battery <= BAT_LOW_THRESH && !charging && strcmp(npd_options->active_profile, PROFILE_LOW)) {
             // If low battery threshold is met, set power profile
             npd_options->bat_state = bat_low;
             strncpy(selected_profile, PROFILE_LOW, MSG_LEN);
@@ -151,7 +151,7 @@ int nicepowerd(struct npd_state *npd_options) {
             // Sleep LONG_INTERVAL to avoid power draw from this daemon
             sleep(XLONG_INTERVAL);
             continue;
-        } else if (charging || (battery < BAT_HIGH_THRESH && battery > BAT_LOW_THRESH)) {
+        } else if (strcmp(npd_options->active_profile, PROFILE_MID) && (charging || (battery < BAT_HIGH_THRESH && battery > BAT_LOW_THRESH))) {
             npd_options->bat_state = bat_norm;
             npd_options->bat_state = bat_low;
             strncpy(selected_profile, PROFILE_MID, MSG_LEN);
