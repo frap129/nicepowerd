@@ -5,13 +5,14 @@
 #define DAEMON_SOCKET	"/run/nicepowerd/nicepowerd"
 #define CTL_SOCKET		"\0nicepowerctl"
 
+#define KILL_DAEMON		"stop"
 #define GET_PROFILE		"get"
 #define PROFILE_HIGH	"performance"
 #define PROFILE_MID		"balance"
 #define PROFILE_LOW		"power"
 
 #define MSG_LEN			sizeof(PROFILE_HIGH)
-#define MAX_PATH_LEN	512
+#define MAX_PATH_LEN	1024
 #define SHORT_INTERVAL	5
 #define LONG_INTERVAL	30
 #define XLONG_INTERVAL	1000
@@ -26,6 +27,7 @@ struct npd_state {
     char profile_path[512];
     char *active_profile;
     enum battery_state bat_state;
+    int running;
 };
 
 int make_named_socket(const char *filename) {

@@ -17,7 +17,8 @@ void print_help() {
     printf("\tget\t\tGet the active profile name.\n");
     printf("\tperformance\tSet the active profile to Performance.\n");
     printf("\tbalance\t\tSet the active profile to Balanced.\n");
-    printf("\tpower\t\tSet the active profile to Low-Power\n");
+    printf("\tpower\t\tSet the active profile to Low-Power.\n");
+    printf("\tstop\t\tStop nicepowerd.\n");
 }
 
 int main (int argc , char *argv[]) {
@@ -38,7 +39,8 @@ int main (int argc , char *argv[]) {
     if (strcmp(argv[1], PROFILE_HIGH) != 0 &&
         strcmp(argv[1], PROFILE_MID) != 0 &&
         strcmp(argv[1], PROFILE_LOW) != 0 && 
-        strcmp(argv[1], GET_PROFILE) != 0) {
+        strcmp(argv[1], GET_PROFILE) != 0 &&
+        strcmp(argv[1], KILL_DAEMON) != 0) {
         printf("invalid command: %s\n", argv[1]);
         exit(EXIT_FAILURE);
     }

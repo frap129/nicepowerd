@@ -48,7 +48,7 @@ void *nicepowerctl() {
     sock = make_named_socket(DAEMON_SOCKET);
     chmod(DAEMON_SOCKET, 0777);
 
-    while (1) {
+    while (npd_options->running) {
         fprintf(output, "Waiting for message from nicepowerctl\n");
 
         /* Wait for a message. */
@@ -66,6 +66,8 @@ void *nicepowerctl() {
             // Reply with active profile
             nbytes = sendto(sock, npd_options->active_profile, nbytes, 0,
                              (struct sockaddr *) & name, size);
+        } else if (strcmp(message, KILL_DAEMON) == 0) {
+            npd_options->running = 0;
         } else {
             // Set current profile
             strncpy(npd_options->active_profile, message, MSG_LEN);
@@ -106,7 +108,7 @@ int nicepowerd(struct npd_state *npd_options) {
 
     // Set profile and start monitoring
     set_profile(npd_options->active_profile);
-    while (1) {
+    while (npd_options->running) {
         // Check if profile was manually set
         if (strcmp(selected_profile, npd_options->active_profile) != 0) {
             // Sleep longer to maintain user-set profile
@@ -192,6 +194,7 @@ int main(int argc , char *argv[]) {
     signal(SIGHUP, SIG_IGN);
         
     // Start main loop
+    npd_options->running = 1;
     nicepowerd(npd_options);
 
     return 0;
