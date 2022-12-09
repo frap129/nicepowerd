@@ -75,6 +75,14 @@ void *nicepowerctl() {
             fprintf(output, "profile set: %s\n", npd_options->active_profile);
         }
     }
+    return NULL;
+}
+
+int charging_state() {
+    FILE *ac = fopen(AC_PATH, "r");
+    char value[1];
+    fgets(value, 2, ac);
+    return atoi(value);
 }
 
 int battery_level() {
@@ -118,26 +126,39 @@ int nicepowerd(struct npd_state *npd_options) {
         }
 
         // Check battery level
+        int charging = charging_state();
         int battery = battery_level();
+        fprintf(output, "Charging: %d\n", charging);
         fprintf(output, "Battery Level: %d\n", battery);
 
         // Check if profile should be switched
-        if (battery >= BAT_HIGH_THRESH) {
+        if (battery >= BAT_HIGH_THRESH && charging) {
             npd_options->bat_state = bat_high;
-        } else if (battery <= BAT_LOW_THRESH) {
+            strncpy(selected_profile, PROFILE_HIGH, MSG_LEN);
+            strncpy(npd_options->active_profile, PROFILE_HIGH, MSG_LEN);
+            set_profile(npd_options->active_profile);
+            fprintf(output, "CHARGING and HIGH BATTERY: profile set: %s\n", npd_options->active_profile);
+            fflush(output);
+        } else if (battery <= BAT_LOW_THRESH && !charging) {
             // If low battery threshold is met, set power profile
             npd_options->bat_state = bat_low;
             strncpy(selected_profile, PROFILE_LOW, MSG_LEN);
             strncpy(npd_options->active_profile, PROFILE_LOW, MSG_LEN);
             set_profile(npd_options->active_profile);
-            fprintf(output, "LOW BATTERY: profile set: %s\n", npd_options->active_profile);
+            fprintf(output, "NOT CHARGING and LOW BATTERY: profile set: %s\n", npd_options->active_profile);
             fflush(output);
 
             // Sleep LONG_INTERVAL to avoid power draw from this daemon
             sleep(XLONG_INTERVAL);
             continue;
-        } else {
+        } else if (charging || (battery < BAT_HIGH_THRESH && battery > BAT_LOW_THRESH)) {
             npd_options->bat_state = bat_norm;
+            npd_options->bat_state = bat_low;
+            strncpy(selected_profile, PROFILE_MID, MSG_LEN);
+            strncpy(npd_options->active_profile, PROFILE_MID, MSG_LEN);
+            set_profile(npd_options->active_profile);
+            fprintf(output, "CHARGING or BATTERY OK: profile set: %s\n", npd_options->active_profile);
+            fflush(output);
         }
 
         fflush(output);
@@ -179,7 +200,7 @@ int main(int argc , char *argv[]) {
     }
 
     // Copy defaults to state
-    npd_options = malloc(MAX_PATH_LEN+ (2*MSG_LEN));
+    npd_options = malloc(MAX_PATH_LEN+(2*MSG_LEN)+sizeof(int));
     strncpy(npd_options->default_profile, PROFILE_MID, MSG_LEN);
     strncpy(npd_options->profile_path, CONFIG_DIR, MAX_PATH_LEN);
     mkdir(CONFIG_DIR, 760);

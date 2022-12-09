@@ -1,5 +1,6 @@
 #define CONFIG_DIR		"/etc/nicepowerd"
 #define LOG_PATH		"/var/log/nicepowerd"
+#define AC_PATH		"/sys/class/power_supply/AC/online"
 #define BAT_PATH		"/sys/class/power_supply/BAT0/capacity"
 #define SOCKET_DIR		"/run/nicepowerd"
 #define DAEMON_SOCKET	"/run/nicepowerd/nicepowerd"
@@ -12,7 +13,7 @@
 #define PROFILE_LOW		"power"
 
 #define MSG_LEN			sizeof(PROFILE_HIGH)
-#define MAX_PATH_LEN	1024
+#define MAX_PATH_LEN	512
 #define SHORT_INTERVAL	5
 #define LONG_INTERVAL	30
 #define XLONG_INTERVAL	1000
