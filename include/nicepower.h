@@ -30,13 +30,14 @@
 #define BAT_LOW_THRESH	20
 #define BAT_HIGH_THRESH	80
 
-enum battery_state { bat_ac, bat_high, bat_norm, bat_low };
+enum battery_state { bat_high, bat_norm, bat_low };
 
 struct npd_state {
     char default_profile[MSG_LEN];
-    char profile_path[512];
-    char *active_profile;
+    char profile_path[MAX_PATH_LEN];
+    char active_profile[MSG_LEN];
     enum battery_state bat_state;
+    int ac_state;
     int running;
 };
 
