@@ -22,7 +22,7 @@ static struct npd_state *npd_options;
 int set_profile(char *profile) {
     // Build profile path
     char exec_path[MAX_PATH_LEN + MSG_LEN];
-    strcat(exec_path, npd_options->profile_path);
+    strcpy(exec_path, npd_options->profile_path);
     strcat(exec_path, "/");
     strncat(exec_path, profile, MAX_PATH_LEN);
 
