@@ -11,8 +11,6 @@
 
 static struct npd_state *npd_options;
 static FILE *output;
-static FILE *ac;
-static FILE *battery;
 
 int activate_profile(char profile[]) {
     // Build profile path
@@ -80,15 +78,17 @@ void *nicepowerctl() {
 
 void update_power_state(struct npd_state *npd_options) {
     // Update AC state
+    FILE *ac = fopen(AC_PATH, "r");
     char state[1];
     fgets(state, 2, ac);
-    rewind(ac);
+    fclose(ac);
     npd_options->ac_state = atoi(state);
 
     // Update battery state
+    FILE *battery = fopen(BAT_PATH, "r");
     char charge[3];
     fgets(charge, 4, battery);
-    rewind(battery);
+    fclose(battery);
     int percent = atoi(charge);
     if (percent >= BAT_HIGH_THRESH) {
         npd_options->bat_state = bat_high;
@@ -112,10 +112,6 @@ int nicepowerd(struct npd_state *npd_options) {
     fprintf(output, "Using default profile: %s\n", npd_options->default_profile);
     fprintf(output, "Using profile directory: %s\n", npd_options->profile_path);
 
-    // Open power files
-    ac = fopen(AC_PATH, "r");
-    battery = fopen(BAT_PATH, "r");
-
     // Initialize profile vars
     strncpy(npd_options->active_profile, npd_options->default_profile, MSG_LEN);
     strncpy(selected_profile, npd_options->default_profile, MSG_LEN);
@@ -132,7 +128,7 @@ int nicepowerd(struct npd_state *npd_options) {
         if (strcmp(selected_profile, npd_options->active_profile) != 0) {
             // Sleep longer to maintain user-set profile
             strncpy(selected_profile, npd_options->active_profile, MSG_LEN);
-            sleep(LONG_INTERVAL);
+            sleep(XLONG_INTERVAL);
         }
 
         // Check battery level
@@ -155,7 +151,7 @@ int nicepowerd(struct npd_state *npd_options) {
 
             // Sleep LONG_INTERVAL to avoid power draw from this daemon
             sleep(XLONG_INTERVAL);
-        } else if (npd_options->bat_state == bat_norm && strcmp(npd_options->active_profile, PROFILE_MID) != 0) {
+        } else if ((npd_options->bat_state == bat_norm || !npd_options->ac_state) && strcmp(npd_options->active_profile, PROFILE_MID) != 0) {
             strncpy(selected_profile, PROFILE_MID, MSG_LEN);
             set_profile(selected_profile);
             fprintf(output, "CHARGING or BATTERY OK: profile set: %s\n", npd_options->active_profile);
@@ -164,9 +160,6 @@ int nicepowerd(struct npd_state *npd_options) {
 
         sleep(SHORT_INTERVAL);
     }
-
-    fclose(ac);
-    fclose(battery);
 
     return 0;
 }
