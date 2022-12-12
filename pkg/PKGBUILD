@@ -1,0 +1,35 @@
+# Author: Joe Maples <joe@maples.dev>
+pkgname=nicepowerd-git
+pkgver=befdd72
+pkgrel=1
+pkgdesc="A simple power profile management daemon"
+arch=('any')
+url='https://github.com/frap129/nicepowerd/'
+license=(GPL3)
+makedepends=('git' 'clang')
+source=("git+$url")
+sha256sums=('SKIP')
+backup=(
+  'etc/nicepowerd/power'
+  'etc/nicepowerd/balance'
+  'etc/nicepowerd/performance'
+)
+pkgver() {
+  git -C nicepowerd log --oneline src | head -n1 | cut -d' ' -f1
+}
+
+build() {
+  cd nicepowerd
+  make
+}
+
+package() {
+  cd nicepowerd
+  install -d "$pkgdir/usr/bin/"
+  install -d "$pkgdir/usr/lib/systemd/system/"
+  install -d "$pkgdir/etc/nicepowerd/"
+  install -m755 nicepowerd "$pkgdir/usr/bin/"
+  install -m755 nicepowerctl "$pkgdir/usr/bin/"
+  install -m644 pkg/nicepowerd.service "$pkgdir/usr/lib/systemd/system/"
+  install -m755 scripts/* "$pkgdir/etc/nicepowerd/"
+}

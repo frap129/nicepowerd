@@ -1,0 +1,14 @@
+[Unit]
+Description=nicepowerd
+Documentation=https://github.com/frap129/nicepowerd
+After=basic.target
+
+[Service]
+ExecStart=nicepowerd
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=5
+StartLimitInterval=30
+
+[Install]
+WantedBy=multi-user.target
