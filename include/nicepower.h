@@ -9,7 +9,9 @@
 
 #define CONFIG_DIR		"/etc/nicepowerd"
 #define LOG_PATH		"/var/log/nicepowerd"
+#ifndef AC_PATH
 #define AC_PATH		"/sys/class/power_supply/AC/online"
+#endif // !AC_PATH
 #define BAT_PATH		"/sys/class/power_supply/BAT0/capacity"
 #define SOCKET_DIR		"/run/nicepowerd"
 #define DAEMON_SOCKET	"/run/nicepowerd/nicepowerd"

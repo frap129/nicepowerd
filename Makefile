@@ -1,7 +1,9 @@
 DAEMON := nicepowerd
 CTL := nicepowerctl
 
-CFLAGS := $(CFLAGS) -pthread
+include config.mk
+
+CFLAGS := $(CFLAGS) -DAC_PATH=\"$(AC_PATH)\" -pthread
 CFLAGS_DEBUG := -ggdb -DDEBUG -Wall -Wextra
  
 PHONY: clean build
