@@ -206,6 +206,7 @@ int main(int argc , char *argv[]) {
     // Start main loop
     state->running = 1;
     nicepowerd(state);
+    free(state);
 
     return 0;
 }
