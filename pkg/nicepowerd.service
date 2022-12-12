@@ -5,6 +5,7 @@ After=basic.target
 
 [Service]
 ExecStart=nicepowerd
+ExecStop=nicepowerctl stop
 Restart=on-failure
 RestartSec=5
 StartLimitBurst=5

@@ -112,7 +112,6 @@ int nicepowerd(struct npd_state *state) {
     fprintf(output, "Using profile directory: %s\n", state->profile_path);
 
     // Initialize profile vars
-    strncpy(state->active_profile, PROFILE_MID, MSG_LEN);
     strncpy(selected_profile, PROFILE_MID, MSG_LEN);
     strncpy(state->active_profile, PROFILE_MID, MSG_LEN);
     fflush(output);
