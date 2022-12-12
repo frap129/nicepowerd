@@ -9,13 +9,13 @@
 
 #define NAME	"nicepowerd"
 
-static struct npd_state *npd_options;
+static struct npd_state *state;
 static FILE *output;
 
 int activate_profile(char profile[]) {
     // Build profile path
     char exec_path[MAX_PATH_LEN + MSG_LEN];
-    strcpy(exec_path, npd_options->profile_path);
+    strcpy(exec_path, state->profile_path);
     strcat(exec_path, "/");
     strncat(exec_path, profile, MAX_PATH_LEN);
 
@@ -27,7 +27,7 @@ int activate_profile(char profile[]) {
 }
 
 int set_profile(char profile[]) {
-    strncpy(npd_options->active_profile, profile, MSG_LEN);
+    strncpy(state->active_profile, profile, MSG_LEN);
     return activate_profile(profile);
 }
 
@@ -46,7 +46,7 @@ void *nicepowerctl() {
     sock = make_named_socket(DAEMON_SOCKET);
     chmod(DAEMON_SOCKET, 0777);
 
-    while (npd_options->running) {
+    while (state->running) {
         fprintf(output, "Waiting for message from nicepowerctl\n");
 
         /* Wait for a message. */
@@ -62,27 +62,27 @@ void *nicepowerctl() {
         // Check if message is a get request
         if (strcmp(message, GET_PROFILE) == 0) {
             // Reply with active profile
-            nbytes = sendto(sock, npd_options->active_profile, nbytes, 0,
+            nbytes = sendto(sock, state->active_profile, nbytes, 0,
                              (struct sockaddr *) & name, size);
         } else if (strcmp(message, KILL_DAEMON) == 0) {
-            npd_options->running = 0;
+            state->running = 0;
         } else {
             // Set current profile
-            strncpy(npd_options->active_profile, message, MSG_LEN);
-            activate_profile(npd_options->active_profile);
-            fprintf(output, "profile set: %s\n", npd_options->active_profile);
+            strncpy(state->active_profile, message, MSG_LEN);
+            activate_profile(state->active_profile);
+            fprintf(output, "profile set: %s\n", state->active_profile);
         }
     }
     return NULL;
 }
 
-void update_power_state(struct npd_state *npd_options) {
+void update_power_state(struct npd_state *state) {
     // Update AC state
     FILE *ac = fopen(AC_PATH, "r");
-    char state[1];
-    fgets(state, 2, ac);
+    char charging[1];
+    fgets(charging, 2, ac);
     fclose(ac);
-    npd_options->ac_state = atoi(state);
+    state->ac_state = atoi(charging);
 
     // Update battery state
     FILE *battery = fopen(BAT_PATH, "r");
@@ -91,15 +91,15 @@ void update_power_state(struct npd_state *npd_options) {
     fclose(battery);
     int percent = atoi(charge);
     if (percent >= BAT_HIGH_THRESH) {
-        npd_options->bat_state = bat_high;
+        state->bat_state = bat_high;
     } else if (percent <= BAT_LOW_THRESH) {
-        npd_options->bat_state = bat_low;
+        state->bat_state = bat_low;
     } else {
-        npd_options->bat_state = bat_norm;
+        state->bat_state = bat_norm;
     }
 }
 
-int nicepowerd(struct npd_state *npd_options) {
+int nicepowerd(struct npd_state *state) {
     pthread_t thread_id;
     char selected_profile[MSG_LEN];
 
@@ -109,52 +109,51 @@ int nicepowerd(struct npd_state *npd_options) {
 #else
     output = stdout;
 #endif
-    fprintf(output, "Using default profile: %s\n", npd_options->default_profile);
-    fprintf(output, "Using profile directory: %s\n", npd_options->profile_path);
+    fprintf(output, "Using profile directory: %s\n", state->profile_path);
 
     // Initialize profile vars
-    strncpy(npd_options->active_profile, npd_options->default_profile, MSG_LEN);
-    strncpy(selected_profile, npd_options->default_profile, MSG_LEN);
-    strncpy(npd_options->active_profile, npd_options->default_profile, MSG_LEN);
+    strncpy(state->active_profile, PROFILE_MID, MSG_LEN);
+    strncpy(selected_profile, PROFILE_MID, MSG_LEN);
+    strncpy(state->active_profile, PROFILE_MID, MSG_LEN);
     fflush(output);
 
     // Create socket listener thread
     pthread_create(&thread_id, NULL, nicepowerctl, NULL);
 
     // Set profile and start monitoring
-    set_profile(npd_options->active_profile);
-    while (npd_options->running) {
+    set_profile(state->active_profile);
+    while (state->running) {
         // Check if profile was manually set
-        if (strcmp(selected_profile, npd_options->active_profile) != 0) {
+        if (strcmp(selected_profile, state->active_profile) != 0) {
             // Sleep longer to maintain user-set profile
-            strncpy(selected_profile, npd_options->active_profile, MSG_LEN);
+            strncpy(selected_profile, state->active_profile, MSG_LEN);
             sleep(XLONG_INTERVAL);
         }
 
         // Check battery level
-        update_power_state(npd_options);
+        update_power_state(state);
 
         // Check if profile should be switched
-        if (npd_options->bat_state == bat_high && npd_options->ac_state && strcmp(npd_options->active_profile, PROFILE_HIGH) != 0) {
+        if (state->bat_state == bat_high && state->ac_state && strcmp(state->active_profile, PROFILE_HIGH) != 0) {
             strncpy(selected_profile, PROFILE_HIGH, MSG_LEN);
             set_profile(selected_profile);
-            fprintf(output, "CHARGING: profile set: %s\n", npd_options->active_profile);
+            fprintf(output, "CHARGING: profile set: %s\n", state->active_profile);
             fflush(output);
-        } else if (npd_options->bat_state == bat_low && !npd_options->ac_state) {
-            if (strcmp(npd_options->active_profile, PROFILE_LOW) != 0) {
+        } else if (state->bat_state == bat_low && !state->ac_state) {
+            if (strcmp(state->active_profile, PROFILE_LOW) != 0) {
                 // If low battery threshold is met, set power profile
                 strncpy(selected_profile, PROFILE_LOW, MSG_LEN);
                 set_profile(selected_profile);
-                fprintf(output, "LOW BATTERY: profile set: %s\n", npd_options->active_profile);
+                fprintf(output, "LOW BATTERY: profile set: %s\n", state->active_profile);
                 fflush(output);
             }
 
             // Sleep LONG_INTERVAL to avoid power draw from this daemon
             sleep(XLONG_INTERVAL);
-        } else if ((npd_options->bat_state == bat_norm || !npd_options->ac_state) && strcmp(npd_options->active_profile, PROFILE_MID) != 0) {
+        } else if ((state->bat_state == bat_norm || !state->ac_state) && strcmp(state->active_profile, PROFILE_MID) != 0) {
             strncpy(selected_profile, PROFILE_MID, MSG_LEN);
             set_profile(selected_profile);
-            fprintf(output, "CHARGING or BATTERY OK: profile set: %s\n", npd_options->active_profile);
+            fprintf(output, "CHARGING or BATTERY OK: profile set: %s\n", state->active_profile);
             fflush(output);
         }
 
@@ -170,22 +169,18 @@ int main(int argc , char *argv[]) {
 
     static struct option long_options[] = {
         { "daemon", no_argument, 0, 'd' },
-        { "profile", required_argument, 0, 'p' },
         { "config", required_argument, 0, 'c' },  
         { "help", no_argument, 0, 'h' }
     };
-    static const char *short_options = "dp:c:h";
+    static const char *short_options = "dc:h";
     
     while((option = getopt_long(argc, argv, short_options, long_options, 0)) != -1) {
         switch(option){
             case 'd':
                 daemon = true;
                 break;
-            case 'p':
-                strncpy(npd_options->default_profile, optarg, MSG_LEN);
-                break;
             case 'c':
-                strncpy(npd_options->profile_path, optarg, MAX_PATH_LEN);
+                strncpy(state->profile_path, optarg, MAX_PATH_LEN);
                 break;                
             case ':':
             case '?':
@@ -196,9 +191,8 @@ int main(int argc , char *argv[]) {
     }
 
     // Copy defaults to state
-    npd_options = malloc(MAX_PATH_LEN+(2*MSG_LEN)+2*sizeof(int));
-    strncpy(npd_options->default_profile, PROFILE_MID, MSG_LEN);
-    strncpy(npd_options->profile_path, CONFIG_DIR, MAX_PATH_LEN);
+    state = malloc(MAX_PATH_LEN+(2*MSG_LEN)+2*sizeof(int));
+    strncpy(state->profile_path, CONFIG_DIR, MAX_PATH_LEN);
     mkdir(CONFIG_DIR, 760);
 
     // Start as daemon if asked
@@ -211,8 +205,8 @@ int main(int argc , char *argv[]) {
     signal(SIGHUP, SIG_IGN);
         
     // Start main loop
-    npd_options->running = 1;
-    nicepowerd(npd_options);
+    state->running = 1;
+    nicepowerd(state);
 
     return 0;
 }

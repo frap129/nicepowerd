@@ -35,7 +35,6 @@
 enum battery_state { bat_high, bat_norm, bat_low };
 
 struct npd_state {
-    char default_profile[MSG_LEN];
     char profile_path[MAX_PATH_LEN];
     char active_profile[MSG_LEN];
     enum battery_state bat_state;
