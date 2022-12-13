@@ -11,6 +11,7 @@
 
 static struct npd_state *state;
 static FILE *output;
+pthread_t thread_id;
 
 int activate_profile(char profile[]) {
     // Build profile path
@@ -46,15 +47,16 @@ void *nicepowerctl() {
     sock = make_named_socket(DAEMON_SOCKET);
     chmod(DAEMON_SOCKET, 0777);
 
+    // Start socket listener loop
     while (state->running) {
         fprintf(output, "Waiting for message from nicepowerctl\n");
 
-        /* Wait for a message. */
+        // Collect incoming message
         size = sizeof(name);
         nbytes = recvfrom(sock, message, MSG_LEN, 0,
                            (struct sockaddr *) & name, &size);
 
-        // Ignore message transmission errors
+        // Skip message if theres an error
         if (nbytes < 0) {
             continue;
         }
@@ -100,7 +102,6 @@ void update_power_state(struct npd_state *state) {
 }
 
 int nicepowerd(struct npd_state *state) {
-    pthread_t thread_id;
     char selected_profile[MSG_LEN];
 
     // Setup logging
@@ -162,6 +163,20 @@ int nicepowerd(struct npd_state *state) {
     return 0;
 }
 
+void handle_signal(int signo) {
+    switch(signo) {
+        case -1:
+            signal(SIGABRT, handle_signal);
+            signal(SIGKILL, handle_signal);
+            signal(SIGINT, handle_signal);
+            signal(SIGQUIT, handle_signal);
+            signal(SIGHUP, handle_signal);
+            break;
+        default:
+            state->running = 0;
+    }
+}
+
 int main(int argc , char *argv[]) {
     bool daemon = false;
     int option;
@@ -199,13 +214,12 @@ int main(int argc , char *argv[]) {
         daemonize();
 
     // Catch, ignore and handle signals
-    // TODO: Implement a working signal handler
-    signal(SIGCHLD, SIG_IGN);
-    signal(SIGHUP, SIG_IGN);
-        
+    handle_signal(-1);
+
     // Start main loop
     state->running = 1;
     nicepowerd(state);
+    fclose(output);
     free(state);
 
     return 0;
