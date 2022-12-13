@@ -1,10 +1,10 @@
 # Author: Joe Maples <joe@maples.dev>
 pkgname=nicepowerd-git
-pkgver=befdd72
+pkgver=7e683fb
 pkgrel=1
 pkgdesc="A simple power profile management daemon"
 arch=('any')
-url='https://github.com/frap129/nicepowerd/'
+url="file://$(pwd | rev | cut -d/ --complement  -f1 | rev)"
 license=(GPL3)
 makedepends=('git' 'clang')
 source=("git+$url")
@@ -14,11 +14,16 @@ backup=(
   'etc/nicepowerd/balance'
   'etc/nicepowerd/performance'
 )
+
 pkgver() {
   git -C nicepowerd log --oneline src | head -n1 | cut -d' ' -f1
 }
 
 build() {
+  # Copy config
+  cp ../../config.mk nicepowerd
+
+  # Build
   cd nicepowerd
   make
 }
