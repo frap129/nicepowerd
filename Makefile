@@ -3,7 +3,11 @@ CTL := nicepowerctl
 
 include config.mk
 
-CFLAGS := $(CFLAGS) -DAC_PATH=\"$(AC_PATH)\" -pthread
+CFLAGS := $(CFLAGS) -pthread \
+          -DAC_PATH=\"$(AC_PATH)\" \
+          -DBAT_LOW_THRESH=$(BAT_LOW_THRESH) \
+          -DBAT_HIGH_THRESH=$(BAT_HIGH_THRESH)
+
 CFLAGS_DEBUG := -ggdb -DDEBUG -Wall -Wextra
  
 PHONY: clean build
