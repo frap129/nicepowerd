@@ -151,10 +151,13 @@ int nicepowerd(struct npd_state *state) {
             // Sleep LONG_INTERVAL to avoid power draw from this daemon
             sleep(XLONG_INTERVAL);
         } else if ((state->bat_state == bat_norm || !state->ac_state) && strcmp(state->active_profile, PROFILE_MID) != 0) {
-            strncpy(selected_profile, PROFILE_MID, MSG_LEN);
-            set_profile(selected_profile);
-            fprintf(output, "CHARGING or BATTERY OK: profile set: %s\n", state->active_profile);
-            fflush(output);
+            // Only upgrade from low to balanced on charger
+            if (state->ac_state || strcmp(state->active_profile, PROFILE_LOW) != 0){
+                strncpy(selected_profile, PROFILE_MID, MSG_LEN);
+                set_profile(selected_profile);
+                fprintf(output, "CHARGING or BATTERY OK: profile set: %s\n", state->active_profile);
+                fflush(output);
+            }
         }
 
         sleep(SHORT_INTERVAL);
